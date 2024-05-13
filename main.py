@@ -44,7 +44,6 @@ async def post(reqMessage: ReqMessage):
     res = await chatGPT()
     chatMessageHistory.append({"role": "system", "content": res})
     
-    print(chatMessageHistory)
     return {"message": res}
   
 async def chatGPT():
