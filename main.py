@@ -27,33 +27,27 @@ Example format: [mode={mode level, which can be easy, medium, or hard}], followe
 """
 
 class ReqMessage(BaseModel):
-    message: str
+    text: str
+    isSentByUser: bool
     mode: str
 
-class ChatMessageHistory(BaseModel):
-    role: str
-    content: str
-
-chatMessageHistory: List[ChatMessageHistory] = []
-
 @app.post("/")
-async def post(reqMessage: ReqMessage):
-    global chatMessageHistory
-    chatMessageHistory.append({"role": "user", "content": f"[mode={reqMessage.mode}] {reqMessage.message}"})
-
-    res = await chatGPT()
-    chatMessageHistory.append({"role": "system", "content": res})
-    
+async def post(reqMessage: List[ReqMessage]):
+    res = await chatGPT(reqMessage)    
     return {"message": res}
   
-async def chatGPT():
-    global chatMessageHistory
+async def chatGPT(reqMessage: List[ReqMessage]):
+    messages = [
+        {"role": "user", "content": f"[mode={message.mode}] {message.text}"} if message.isSentByUser else 
+        {"role": "system", "content": message.text}
+        for message in reqMessage
+    ]
 
     res = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system",  "content": SYSTEM_PROMPT.strip()},
-            *chatMessageHistory
+            *messages
         ],
         temperature=1,
         max_tokens=256,
@@ -62,5 +56,3 @@ async def chatGPT():
         presence_penalty=0
     )
     return res.choices[0].message.content.strip()
-
-
